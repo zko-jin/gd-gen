@@ -120,6 +120,11 @@ GClass::GClass(TokenStream &token_stream)
     }
 
     token = token_stream.next();
+    
+    //ignore export macros
+    if (token.token == GToken::Identifier && token.value == "GDE_EXPORT")
+        token = token_stream.next();
+    
     if (token.token != GToken::Identifier)
     {
         Logger::log("GClass expected an identifier for the class name, got '" + token.value + "'",

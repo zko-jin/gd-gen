@@ -88,6 +88,13 @@ GFunction::GFunction(TokenStream &token_stream)
     }
 
     token = token_stream.next();
+    if (token.token == GToken::Asterisk)
+    {
+        //Is pointer type
+        returnType += "*";
+        
+        token = token_stream.next();
+    }
     if (token.token != GToken::Identifier)
     {
         Logger::log(
@@ -97,6 +104,5 @@ GFunction::GFunction(TokenStream &token_stream)
     }
     name = token.value;
 
-    std::vector<GArgument> arguments = GArgument::read_garguments(token_stream);
-    arguments = arguments;
+    arguments = GArgument::read_garguments(token_stream);
 }

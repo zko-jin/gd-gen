@@ -21,6 +21,7 @@ enum class GToken
     Float,
     Equal,
     Const,
+    Mutable,
     Pointer,
     LeftParenthesis,
     RightParenthesis,

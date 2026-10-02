@@ -11,6 +11,16 @@ enum class GType
     Object = 6,
     Boolean = 7,
     PackedByteArray = 8,
+    PackedInt32Array,
+    PackedInt64Array,
+    PackedFloat32Array,
+    PackedFloat64Array,
+    PackedStringArray,
+    PackedVector2Array,
+    PackedVector3Array,
+    PackedColorArray,
+    PackedVector4Array,
     String,
+    Variant,
     Enum
 };

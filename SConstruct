@@ -7,6 +7,10 @@ env = Environment(CPPDEFINES=[],
                 CXXFLAGS="/std:c++20",
                 )
 
+#if not using MSVC, use the GCC/Clang syntax
+if not "MSVC_VERSION" in env:
+    env['CXXFLAGS'] = "-std=c++20"
+
 def AllSources(node='.', pattern='*.cpp'):
     result = []
     for dir in Glob(os.path.join(node, '*')):

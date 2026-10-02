@@ -8,6 +8,12 @@ GProperty::GProperty(TokenStream &token_stream)
     TokenValue token;
 
     token = token_stream.next();
+    
+    while (token.token == GToken::Const || token.token == GToken::Mutable || token.token == GToken::Static)
+    {
+        token = token_stream.next();
+    }
+    
     if (token.token != GToken::Identifier)
     {
         Logger::log("GProperty expected an identifier for type, got " + token.value,
@@ -41,6 +47,46 @@ GProperty::GProperty(TokenStream &token_stream)
     else if (rawType == "PackedByteArray")
     {
         variantType = GType::PackedByteArray;
+    }
+    else if (rawType == "PackedInt32Array")
+    {
+        variantType = GType::PackedInt32Array;
+    }
+    else if (rawType == "PackedInt64Array")
+    {
+        variantType = GType::PackedInt64Array;
+    }
+    else if (rawType == "PackedFloat32Array")
+    {
+        variantType = GType::PackedFloat32Array;
+    }
+    else if (rawType == "PackedFloat64Array")
+    {
+        variantType = GType::PackedFloat64Array;
+    }
+    else if (rawType == "PackedStringArray")
+    {
+        variantType = GType::PackedStringArray;
+    }
+    else if (rawType == "PackedVector2Array")
+    {
+        variantType = GType::PackedVector2Array;
+    }
+    else if (rawType == "PackedVector3Array")
+    {
+        variantType = GType::PackedVector3Array;
+    }
+    else if (rawType == "PackedColorArray")
+    {
+        variantType = GType::PackedColorArray;
+    }
+    else if (rawType == "PackedVector4Array")
+    {
+        variantType = GType::PackedVector4Array;
+    }
+    else if (rawType == "Variant")
+    {
+        variantType = GType::Variant;
     }
     else if (rawType.starts_with("Ref<"))
     {
@@ -120,6 +166,10 @@ GPropertyOptions::GPropertyOptions(TokenStream &token_stream)
         else if (token.value == "ReadOnly")
         {
             readOnly = true;
+        }
+        else if (token.value == "Untyped")
+        {
+            untyped = true;
         }
         else if (token.value == "Description")
         {

@@ -286,6 +286,14 @@ inline TokenValue Parser::read_identifier()
                     cur_line,
                 };
             }
+            else if (str == "mutable")
+            {
+                return TokenValue{
+                    GToken::Mutable,
+                    str,
+                    cur_line,
+                };
+            }
             else if (str == "GENERATED_BODY")
             {
                 return TokenValue{

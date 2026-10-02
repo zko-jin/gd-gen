@@ -84,9 +84,10 @@ GEnum::GEnum(TokenStream &token_stream)
         exit(1);
     }
 
-    token = token_stream.next();
+    
     while (!token_stream.empty())
     {
+        token = token_stream.next();
         GEnum::EnumValue enumValue = {};
 
         if (token.token == GToken::RightCurlyBrace)

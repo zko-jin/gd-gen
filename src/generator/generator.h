@@ -45,8 +45,18 @@ const std::string type_to_variant(GType type)
         case GType::Object: return "OBJECT";
         case GType::Boolean: return "BOOL";
         case GType::PackedByteArray: return "PACKED_BYTE_ARRAY";
+        case GType::PackedInt32Array: return "PACKED_INT32_ARRAY";
+        case GType::PackedInt64Array: return "PACKED_INT64_ARRAY";
+        case GType::PackedFloat32Array: return "PACKED_FLOAT32_ARRAY";
+        case GType::PackedFloat64Array: return "PACKED_FLOAT64_ARRAY";
+        case GType::PackedStringArray: return "PACKED_STRING_ARRAY";
+        case GType::PackedVector2Array: return "PACKED_VECTOR2_ARRAY";
+        case GType::PackedVector3Array: return "PACKED_VECTOR3_ARRAY";
+        case GType::PackedColorArray: return "PACKED_COLOR_ARRAY";
+        case GType::PackedVector4Array: return "PACKED_VECTOR4_ARRAY";
         case GType::String: return "STRING";
         case GType::Enum: return "INT";
+        case GType::Variant: return "NIL";
         default: std::cerr << "Invalid type\n"; exit(1);
     }
 }
@@ -369,7 +379,7 @@ class Generator
         {
             usage = "PROPERTY_USAGE_NONE";
         }
-        else if (property.options.readOnly)
+        if (property.options.readOnly)
         {
             usage += " | PROPERTY_USAGE_READ_ONLY";
         }
@@ -477,7 +487,11 @@ class Generator
         std::string usage = generate_property_usage(property);
 
         std::string variant = type_to_variant(property.variantType);
-
+        if(property.options.untyped && property.variantType == GType::Variant)
+        {
+            variant = "NIL";
+            usage += " | PROPERTY_USAGE_NIL_IS_VARIANT";
+        }
         std::string registered_name;
 
         if (!nested_group.empty())
@@ -518,6 +532,59 @@ class Generator
 
         return {property_info_no_grouping, property_info_grouping + "PROPERTY_USAGE_NONE)"};
     }
+    
+    void sortClasses()
+    {
+        std::unordered_map<std::string, GClass*> classNameToGClassMap;
+            for (GClass& gclass : classes)
+            {
+                classNameToGClassMap[gclass.name] = &gclass;
+            }
+            auto GetClassForName = [&](const std::string& className)->GClass*
+            {
+                auto it = classNameToGClassMap.find(className);
+                return it == classNameToGClassMap.end() ? nullptr : it->second;
+            };
+            struct GClassPath
+            {
+                std::string path;
+                int pathParts;
+                GClassPath() = default;
+                GClassPath(const std::string&& inPath, int inParts) : path(inPath), pathParts(inParts) {}
+            };
+            std::unordered_map<std::string, GClassPath> classNameToPathMap;
+        
+            for (int i = 0; i < classes.size(); i++)
+            {
+                GClass& gclass = classes[i];
+                std::vector<GClass*> parents;
+                for (GClass* parent = GetClassForName(gclass.parentName); parent; parent = GetClassForName(parent->parentName))
+                {
+                    parents.push_back(parent);
+                }
+                std::string classPath;
+                classPath.reserve(128);
+                for (int k = parents.size()-1; k >= 0; --k)
+                {
+                    if (!classPath.empty())
+                        classPath += "/";
+                    classPath += parents[k]->name;
+                }
+                if (!classPath.empty())
+                    classPath += "/";
+                classPath += gclass.name;
+                classNameToPathMap[gclass.name] = GClassPath(std::move(classPath), parents.size());
+            }
+        
+            std::sort(classes.begin(), classes.end(), [&](const GClass& gclassA, const GClass& gclassB) -> bool
+            {
+                GClassPath& pathA = classNameToPathMap[gclassA.name];
+                GClassPath& pathB = classNameToPathMap[gclassB.name];
+                if (pathA.pathParts != pathB.pathParts )
+                    return pathA.pathParts < pathB.pathParts;
+                return pathA.path < pathB.path;
+            });
+    }
 
    public:
     void generate(std::filesystem::path srcFolder)
@@ -550,13 +617,13 @@ class Generator
                 switch (token.token)
                 {
                     case GToken::GPROPERTY:
-                        classes.back().properties.push_back(GProperty(token_stream));
+                        classes.back().properties.emplace_back(token_stream);
                         break;
                     case GToken::GSIGNAL:
-                        classes.back().signals.push_back(GSignal(token_stream));
+                        classes.back().signals.emplace_back(token_stream);
                         break;
                     case GToken::GCLASS:
-                        classes.push_back(GClass(token_stream));
+                        classes.emplace_back(token_stream);
                         classes.back().path = file;
                         generatedFile.classes_indices.push(classes.size() - 1);
                         should_generate = true;
@@ -565,7 +632,7 @@ class Generator
                     case GToken::GENUM: add_enum(GEnum(token_stream)); break;
                     case GToken::GENERATED_BODY: classes.back().generator_line = token.line; break;
                     case GToken::GFUNCTION:
-                        classes.back().functions.push_back(GFunction(token_stream));
+                        classes.back().functions.emplace_back(token_stream);
                         break;
                 }
             }
@@ -699,12 +766,41 @@ class Generator
 
                 for (auto function : _class.functions)
                 {
-                    GeneratedFile << "ClassDB::bind_method(D_METHOD(\"" << function.name << "\"";
-                    for (auto &argument : function.arguments)
+                    if (!function.isStatic)
                     {
-                        GeneratedFile << ", \"" << argument.name << "\"";
+                        GeneratedFile << "ClassDB::bind_method(D_METHOD(\"" << function.name << "\"";
+                        for (auto &argument : function.arguments)
+                        {
+                            GeneratedFile << ", \"" << argument.name << "\"";
+                        }
+                        GeneratedFile << "), &" << _class.name << "::" << function.name;
+                        for (auto &argument : function.arguments)
+                        {
+                            if (!argument.value.empty())
+                            {
+                                GeneratedFile << ", DEFVAL(" << argument.value << ")";
+                            }
+                        }
+                        GeneratedFile << ");\\\n";
                     }
-                    GeneratedFile << "), &" << _class.name << "::" << function.name << ");\\\n";
+                    else
+                    {
+                        GeneratedFile << "ClassDB::bind_static_method(\"" << _class.name << "\", D_METHOD(\"" << function.name << "\"";
+                        for (auto &argument : function.arguments)
+                        {
+                            GeneratedFile << ", \"" << argument.name << "\"";
+                        }
+                        GeneratedFile << "), &" << _class.name << "::" << function.name; 
+                        
+                        for (auto &argument : function.arguments)
+                        {
+                            if (!argument.value.empty())
+                            {
+                                GeneratedFile << ", DEFVAL(" << argument.value << ")";
+                            }
+                        }
+                        GeneratedFile << ");\\\n";
+                    }
                 }
 
                 for (auto property : _class.properties)
@@ -738,6 +834,9 @@ class Generator
             GeneratedFile.close();
         }
 
+        //Sort classes so that parents are loaded before their children.
+        sortClasses();
+        
         // std::cout << "Generated " << structs[0].name << " classes" << std::endl;
 
         generate_register_types(classes, srcFolder, genFolder);

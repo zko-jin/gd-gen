@@ -29,6 +29,7 @@ Registers a property inside the class.
 - `Range(min, max, step)` - Same as hint range, step is optional. Available for both floats and ints
 - `Group("MyGroup/MySubgroup/MySubSubGroup")` - Organizes the property under nested group categories in the inspector. Groups and subgroups are separated by /.
 - `ReadOnly` - Sets the property as read only in the inspector.
+- `Untyped` - If the type is `Variant`, allows any type of variant to be selected in editor.
 
 > ⚠️ **Note:** The methods used in `Getter` and `Setter` must be registered using `GFUNCTION(...)`,
 > or manually bound using `ClassDB::bind_method`, otherwise the property binding **will not work**.
@@ -49,6 +50,7 @@ If you're using an enum inside a `GPROPERTY()`, make sure to register it first w
 ### 🟢 `GFUNCTION()`
 
 Exposes a function to Godot (just like `ClassDB::bind_method`).
+Supports static functions.
 
 ---
 

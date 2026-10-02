@@ -20,6 +20,7 @@ struct GPropertyOptions
     bool noStorage = false;
     bool multiline_text = false;
     bool readOnly = false;
+    bool untyped = false;
     // std::string editable_if;
 
     std::string description;

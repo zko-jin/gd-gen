@@ -18,15 +18,11 @@ std::vector<GArgument> GArgument::read_garguments(TokenStream &token_stream)
 
     while (!token_stream.empty())
     {
-        token = token_stream.next();
-
         if (token.token == GToken::RightParenthesis)
         {
             break;
         }
-
-        GArgument gArgument = {};
-
+        
         if (arguments.size() > 0)
         {
             if (token.token != GToken::Comma)
@@ -36,6 +32,21 @@ std::vector<GArgument> GArgument::read_garguments(TokenStream &token_stream)
                 exit(1);
             }
             token = token_stream.next();
+        }
+        else
+            token = token_stream.next();
+
+        if (token.token == GToken::RightParenthesis)
+        {
+            break;
+        }
+
+        GArgument gArgument = {};
+        
+        if (token.token == GToken::Const)
+        {
+            token = token_stream.next();
+            gArgument.isConst = true;
         }
 
         if (token.token != GToken::Identifier)
@@ -73,6 +84,42 @@ std::vector<GArgument> GArgument::read_garguments(TokenStream &token_stream)
         {
             gArgument.variantType = GType::PackedByteArray;
         }
+        else if (gArgument.raw_type == "PackedInt32Array")
+        {
+            gArgument.variantType = GType::PackedInt32Array;
+        }
+        else if (gArgument.raw_type == "PackedInt64Array")
+        {
+            gArgument.variantType = GType::PackedInt64Array;
+        }
+        else if (gArgument.raw_type == "PackedFloat32Array")
+        {
+            gArgument.variantType = GType::PackedFloat32Array;
+        }
+        else if (gArgument.raw_type == "PackedFloat64Array")
+        {
+            gArgument.variantType = GType::PackedFloat64Array;
+        }
+        else if (gArgument.raw_type == "PackedStringArray")
+        {
+            gArgument.variantType = GType::PackedStringArray;
+        }
+        else if (gArgument.raw_type == "PackedVector2Array")
+        {
+            gArgument.variantType = GType::PackedVector2Array;
+        }
+        else if (gArgument.raw_type == "PackedVector3Array")
+        {
+            gArgument.variantType = GType::PackedVector3Array;
+        }
+        else if (gArgument.raw_type == "PackedColorArray")
+        {
+            gArgument.variantType = GType::PackedColorArray;
+        }
+        else if (gArgument.raw_type == "PackedVector4Array")
+        {
+            gArgument.variantType = GType::PackedVector4Array;
+        }
         else if (gArgument.raw_type.starts_with("Ref<"))
         {
             gArgument.variantType = GType::Resource;
@@ -90,6 +137,23 @@ std::vector<GArgument> GArgument::read_garguments(TokenStream &token_stream)
         }
         gArgument.name = token.value;
 
+        token = token_stream.next();
+        
+        if (token.token == GToken::Equal)
+        {
+            token = token_stream.next();
+            if (token.token == GToken::Comma && token.token == GToken::RightParenthesis)
+            {
+                Logger::log("GArguments expected value after =, got '" + token.value + "'",
+                        LogLevel::Error, token_stream.get_filename(), token.line);
+                exit(1);
+            }
+            
+            gArgument.value = token.value;
+            
+            token = token_stream.next();
+        }
+        
         arguments.push_back(gArgument);
     }
 

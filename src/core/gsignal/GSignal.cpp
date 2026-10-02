@@ -67,6 +67,17 @@ GSignal::GSignal(TokenStream &token_stream)
 
     arguments = GArgument::read_garguments(token_stream);
 
+    for (auto& argument : arguments)
+    {
+        if (!argument.value.empty())
+        {
+            Logger::log("GSignal does not support default arguments, for signal '" 
+                + name + "', argument '" + argument.name + "'",
+                    LogLevel::Error, token_stream.get_filename(), token.line);
+            exit(1);
+        }
+    }
+    
     token = token_stream.next();
 
     if (token.token == GToken::RightParenthesis)
